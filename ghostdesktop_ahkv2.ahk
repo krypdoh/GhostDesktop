@@ -8,7 +8,7 @@
 #Requires AutoHotkey >=2.0
 #Warn
 
-SetTimer(HideMyIcon.Bind(1, 15, 20), 10)
+SetTimer(HideMyIcon.Bind(0, 15, 20), 10)
 
 /*
     ; Hover: effect triggered by clicking (0) or hovering (1)
