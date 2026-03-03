@@ -1,4 +1,4 @@
-# GhostDesktop 🚀
+# GhostDesktop 👻
 
 Lightweight AutoHotkey utility for hiding and fading Windows desktop icons in/out.
 
