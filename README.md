@@ -1,6 +1,6 @@
 # GhostDesktop 🚀
 
-Lightweight AutoHotkey utility for managing desktop behavior and quick hotkeys.
+Lightweight AutoHotkey utility for hiding and fading Windows desktop icons in/out.
 
 ## Overview
 
