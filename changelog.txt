@@ -1,0 +1,47 @@
+GhostDesktop — Changelog
+========================
+
+v0.9.1 — 2026-03-07
+--------------------
+Bug fixes:
+  - Icons now properly fade in and out instead of snapping visible/invisible.
+    Root cause: AnimateWindow does not produce a blend fade on child windows
+    whose parent has WS_CLIPCHILDREN (which SHELLDLL_DefView / Progman always
+    has). The AnimateWindow / SafeMode branch has been removed entirely.
+
+  - Desktop wallpaper no longer flashes black during icon fade transitions.
+    Root causes were two-fold:
+      1. Applying WS_EX_LAYERED directly to SysListView32 caused it to paint
+         its own background black when composited by DWM.
+      2. Toggling WS_EX_LAYERED off at alpha=255 triggered a DWM re-composite
+         transition that briefly blacked out the wallpaper.
+
+Changes:
+  - Fade is now applied to SHELLDLL_DefView (parent of SysListView32) instead
+    of the SysListView32 window directly. SHELLDLL_DefView has no painted
+    background, so it cannot produce a black silhouette over the wallpaper.
+  - WS_EX_LAYERED is enabled once during initialisation (via
+    WinSetTransparent(255, hDefView)) and never removed, keeping the layer
+    permanent and preventing the DWM recomposite flash.
+  - ConfigureDesktopListView (sets CLR_NONE background on SysListView32) is
+    now always called on startup regardless of safe-mode setting.
+  - Removed the SafeMode code path; all fading uses the single incremental
+    alpha loop targeting hDefView.
+  - Added hDefView as a persistent static variable alongside hIcon.
+
+
+v0.9 — 2026-03-03
+------------------
+Initial public release.
+  - Desktop icon fade in / fade out driven by a repeating SetTimer loop.
+  - Two trigger modes: Click (window activate / deactivate) and Hover
+    (mouse-over detection).
+  - Configurable Speed (1–255) and Delay (ms between alpha steps).
+  - Settings GUI with Save / Apply / Cancel / Reset Defaults.
+  - About GUI.
+  - Persistent settings stored in %APPDATA%\ghostdesktop\ghostdesktop.ini.
+  - ProcessSetPriority("AboveNormal") for smoother animation.
+  - OnExit handler restores icon opacity to 255 on script exit.
+  - Desktop list-view reacquisition if Explorer recreates the window.
+  - TrayShowDesktopButton forces fade-in to prevent accidental hide.
+  - DisplayFusion (DFTaskbar) recognised as a non-desktop class.
