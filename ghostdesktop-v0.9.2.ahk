@@ -78,7 +78,9 @@ HideMyIcon(Hover := 0, Speed := 17, Delay := 16.67) {
 
         ; Enable WS_EX_LAYERED once and never remove it — toggling it off triggers a
         ; brief DWM re-composite that can flash the wallpaper black on some systems.
-        WinSetTransparent(255, "ahk_id " hIcon)
+        ; Apply to hDefView (SHELLDLL_DefView) — it has no painted background, so
+        ; fading it avoids the SysListView32 background covering the wallpaper.
+        WinSetTransparent(255, "ahk_id " hDefView)
 
         ; raising proc priority makes the fade animation smoother (could be placebo)
         ProcessSetPriority("AboveNormal")
@@ -128,16 +130,17 @@ HideMyIcon(Hover := 0, Speed := 17, Delay := 16.67) {
         Transparent := 255
     else
         Transparent := NextStep
-    ; Apply alpha to the icon list-view. Never call WinSetTransparent("Off") — keeping
-    ; WS_EX_LAYERED permanent prevents the DWM compositing flash on the wallpaper.
+    ; Apply alpha to SHELLDLL_DefView (not SysListView32) — fading the parent avoids
+    ; the listview background compositing over the wallpaper. Never call WinSetTransparent("Off")
+    ; — keeping WS_EX_LAYERED permanent prevents the DWM compositing flash on the wallpaper.
     if (Transparent != before)
-        try WinSetTransparent(Transparent, "ahk_id " hIcon)
+        try WinSetTransparent(Transparent, "ahk_id " hDefView)
     if Delay
         Sleep(Delay)
     return
 
     RestoreIcons(*) {
-        try WinSetTransparent(255, "ahk_id " hIcon)
+        try WinSetTransparent(255, "ahk_id " hDefView)
     }
 
 }
@@ -183,7 +186,12 @@ FixWallpaper(*) {
     hIcon := GetDesktopIconListViewHwnd()
     if hIcon {
         ConfigureDesktopListView(hIcon)
-        try WinSetTransparent(255, "ahk_id " hIcon)
+        hDefView := DllCall("GetParent", "ptr", hIcon, "ptr")
+        if hDefView {
+            try WinSetTransparent(255, "ahk_id " hDefView)
+        } else {
+            try WinSetTransparent(255, "ahk_id " hIcon)
+        }
     }
     gForceReinit := true
 
