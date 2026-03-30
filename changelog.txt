@@ -1,6 +1,29 @@
 GhostDesktop — Changelog
 ========================
 
+v0.9.3 — 2026-03-30
+--------------------
+Bug fixes:
+  - Desktop wallpaper no longer disappears when icons fade out. Fade target
+    changed from SHELLDLL_DefView (which also hosts the wallpaper on some
+    configurations) to SysListView32 directly. Because the list-view background
+    is set to CLR_NONE, only icons and labels are affected; the wallpaper
+    painted by Progman/WorkerW stays fully opaque at all times.
+
+Performance / cleanup:
+  - Removed dead gSafeMode global and its INI writes (set but never read).
+  - Removed unused HideMyIcon function parameters (were immediately
+    overwritten by globals on every tick).
+  - Replaced WinExist handle-validity check with lightweight
+    DllCall("IsWindow") — direct Win32 syscall avoids AHK window-search
+    overhead.
+  - Replaced 4-line if/else transparency clamping with Max(1, Min(255, …)).
+  - Sleep is now skipped when transparency is already at its target value,
+    reducing idle CPU usage when icons are fully visible or fully hidden.
+  - Fixed About dialog showing stale version (v0.9.2n → v0.9.3) and date.
+  - FixWallpaper tray action updated to target SysListView32 directly.
+
+
 v0.9.1 — 2026-03-07
 --------------------
 Bug fixes:
