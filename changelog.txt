@@ -1,6 +1,35 @@
 GhostDesktop — Changelog
 ========================
 
+v0.9.4 — 2026-03-31
+--------------------
+Tray menu:
+  - Fully custom tray menu replaces all built-in AHK items.
+  - Menu order: Settings | Pause GhostDesktop, Suspend Hotkeys, Reload
+    GhostDesktop, About, Donate!, Exit.
+  - "Pause GhostDesktop" replaces the built-in "Pause Script" item; toggles
+    pause state with a checkmark indicator.
+  - "Reload GhostDesktop" restarts the script or compiled EXE via Reload().
+  - "Donate!" opens PayPal link in the default browser.
+
+Tray icon:
+  - Custom tray icon (ghostdesktop.ico) set on startup with Freeze flag to
+    prevent AHK from overriding it with built-in pause/suspend icons.
+  - Tray icon switches to ghostdesktop-white.ico when paused and back to
+    ghostdesktop.ico when unpaused.
+  - Icons embedded via FileInstall for compiled EXE; white icon extracted to
+    %TEMP% at runtime. SetMainIcon directive sets the EXE's main icon.
+
+About dialog:
+  - Website link (krypdoh.github.io/GhostDesktop/) added as clickable URL.
+  - License changed to AGPL-3.0 with clickable link to license text.
+  - Donate link added to About dialog.
+
+Other:
+  - Removed Fix Wallpaper tray menu item and FixWallpaper() routine.
+  - Added script description to file header comment block.
+  - Updated README.md to reflect actual program features and filenames.
+
 v0.9.3 — 2026-03-30
 --------------------
 Bug fixes:

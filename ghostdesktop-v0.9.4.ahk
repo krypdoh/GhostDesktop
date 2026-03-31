@@ -1,9 +1,10 @@
-; Script     ghostdesktop.ahk
-; License:   MIT License
-; Author:    Paul Charovkine (krypdoh)
-; Github:    github.com/krypdoh/GhostDesktop
-; Date       2026.03.31
-; Version    0.9.4
+; Script:      ghostdesktop.ahk
+; License:     AGPL-v3.0 License
+; Author:      Paul R. Charovkine (krypdoh)
+; Github:      github.com/krypdoh/GhostDesktop
+; Date         2026.03.31
+; Version      0.9.4
+; Description: Fades Windows desktop icons in and out based on window focus or mouse position.
 
 #Requires AutoHotkey >=2.0
 #Warn
@@ -49,6 +50,7 @@ A_TrayMenu.Add("Pause GhostDesktop", TogglePause)
 A_TrayMenu.Add("Suspend Hotkeys",    (*) => Suspend(-1))
 A_TrayMenu.Add("Reload GhostDesktop", (*) => Reload())
 A_TrayMenu.Add("About",              ShowAboutGui)
+A_TrayMenu.Add("Donate!",            (*) => Run("https://www.paypal.com/paypalme/paypaulc"))
 A_TrayMenu.Add("Exit",               (*) => ExitApp())
 A_TrayMenu.Default := "Settings"
 
@@ -262,15 +264,16 @@ ShowAboutGui(*) {
     ag := Gui("+AlwaysOnTop", "About GhostDesktop")
     ag.SetFont("s9", "Segoe UI")
     ag.MarginX := 20, ag.MarginY := 16
-    ag.Add("Text", "w300",
+    ag.Add("Text", "w400",
           "GhostDesktop  v0.9.4`n`n"
-        . "Fades desktop icons based on window focus`nor mouse position.`n`n"
-        . "Author:  Paul R. Charovkine (krypdoh)")
-    ag.Add("Link", "w300", 'License:  <a href="https://www.gnu.org/licenses/agpl-3.0.html#license-text">AGPL-3.0</a>')
-    ag.Add("Text", "w300", "Date:     2026-03-31")
-    ag.Add("Link", "w300", 'Website:  <a href="https://krypdoh.github.io/GhostDesktop/">krypdoh.github.io/GhostDesktop/</a>')
-    ag.Add("Link", "w300", 'If you find GhostDesktop useful please consider <a href="https://www.paypal.com/paypalme/paypaulc">donating</a>.')
-    ag.Add("Text", "w300", "`nSettings stored in:`n" gIniFile)
+        . "Fades desktop icons based on window focus or mouse position.")
+    ag.Add("Link", "w400", 
+          'Author:   Paul R. Charovkine (krypdoh)`n'
+        . 'License:  <a href="https://www.gnu.org/licenses/agpl-3.0.html#license-text">AGPL-3.0</a> `n'
+        . 'Date:      2026-03-31`n'
+        . 'Website:  <a href="https://krypdoh.github.io/GhostDesktop/">krypdoh.github.io/GhostDesktop/</a> `n`n'
+        . 'If you find GhostDesktop useful please consider <a href="https://www.paypal.com/paypalme/paypaulc">donating</a>.`n`n'
+        . "Settings stored in:`n" gIniFile)
     ag.Add("Button", "w80 Default", "OK").OnEvent("Click", (*) => ag.Destroy())
     ag.OnEvent("Close", (*) => ag.Destroy())
     ag.Show("AutoSize")

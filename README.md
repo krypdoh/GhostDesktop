@@ -1,71 +1,64 @@
 # GhostDesktop 👻
 
-Lightweight AutoHotkey utility for hiding and fading Windows desktop icons in/out.
-
-## Overview
-
-This repository contains `ghostdesktop-v0.9.ahk`, an AutoHotkey script you can run on Windows to enable the project's features.
+Lightweight AutoHotkey v2 utility that fades Windows desktop icons in and out based on window focus or mouse position.
 
 ## Features ✨
 
-- 🕶️ Ghost Mode — quickly hide/show desktop elements (icons, wallpaper, etc.)
-- ⌨️ Hotkeys — customizable global hotkeys for common actions
-- ⚙️ Configurable — settings accessible at the top of the script
-- 🔁 Startup support — optional "start with Windows" behavior
-- 🧾 Tray menu — run, pause, or exit from the system tray (if implemented)
+- 🕶️ **Auto-fade** — desktop icons fade out when windows are focused and fade back in when the desktop is visible
+- 🖱️ **Hover mode** — optionally trigger fade based on mouse position (desktop, taskbar, show-desktop button)
+- ⚙️ **Settings GUI** — configure hover mode, fade speed, and delay from the tray menu
+- 🔄 **Persistent settings** — saved to `%APPDATA%\ghostdesktop\ghostdesktop.ini`
+- 🧾 **Tray menu** — Settings, Pause, Suspend Hotkeys, Reload, About, Donate, and Exit
 
 ## Requirements
 
-- AutoHotkey (install from https://www.autohotkey.com/)
+- Windows 10/11
+- [AutoHotkey v2](https://www.autohotkey.com/) (if running the `.ahk` script)
 
 ## Installation
 
-1. Install AutoHotkey on Windows.
-2. Place `ghostdesktop-v0.9.ahk` in a convenient folder (this repository root).
+### Script
+1. Install AutoHotkey v2.
+2. Double-click `ghostdesktop.ahk` to run.
+
+### Compiled EXE
+1. Download `ghostdesktop.exe` from [Releases](https://github.com/krypdoh/GhostDesktop/releases).
+2. Double-click `ghostdesktop.exe` — no AutoHotkey installation required.
 
 ## Usage ▶️
 
-- Double-click `ghostdesktop-v0.9.ahk` to run it with AutoHotkey.
-- Or run from PowerShell/CMD:
+Run `ghostdesktop.ahk` or `ghostdesktop.exe`. The script minimizes to the system tray.
 
-```powershell
-"C:\Program Files\AutoHotkey\AutoHotkey.exe" ghostdesktop-v0.9.ahk
-```
+Right-click the tray icon for options:
 
-If the script requires administrative privileges, run AutoHotkey as Administrator.
+| Menu Item | Description |
+|---|---|
+| **Settings** | Open the settings GUI (default double-click action) |
+| **Pause GhostDesktop** | Pause/resume the fade effect |
+| **Suspend Hotkeys** | Suspend all hotkeys |
+| **Reload GhostDesktop** | Restart the script or EXE |
+| **About** | Version info and links |
+| **Exit** | Quit GhostDesktop |
 
-## How to use Settings ⚙️
+## Settings ⚙️
 
-1. Open `ghostdesktop-v0.9.ahk` in a text editor.
-2. Look for a top section labeled `; Settings` or `; Configuration` — most user-configurable variables live there.
-3. Change values and hotkeys, then save and reload the script (right-click the tray icon → Reload Script) or restart the script.
+Settings are configured via the tray menu → **Settings** GUI:
 
-Example settings block (your variable names may differ):
+- **Hover trigger** — enable mouse-position-based fading (off by default)
+- **Fade speed** — how quickly icons fade in/out (1–50, default 15)
+- **Fade delay** — milliseconds between fade steps (1–100, default 20)
 
-```ahk
-; --------------------
-; Settings
-; --------------------
-StartWithWindows := true
-ToggleHotkey := "#g" ; Win+G
-ShowTrayIcon := true
-```
-
-- Hotkey format: use AutoHotkey hotkey strings, e.g. `^!t` = Ctrl+Alt+T, `#g` = Win+G.
-- Boolean toggles: use `true` / `false` (or `1` / `0`) depending on how the script checks them.
+Settings persist across restarts in `%APPDATA%\ghostdesktop\ghostdesktop.ini`.
 
 ## Troubleshooting 🛠️
 
-- If hotkeys don't work, ensure no other app is capturing the same key combination.
-- Run AutoHotkey as Administrator if the script needs elevated access.
+- If desktop icons don't reappear after exiting, right-click the desktop → View → Show desktop icons.
+- Run as Administrator if the script doesn't respond to desktop events.
 
 ## Contributing 🤝
 
-Improvements welcome. Please open an issue or submit a pull request with a clear description of behavior changes.
+Improvements welcome. Please open an issue or submit a pull request.
 
 ## License 📄
 
-Add a license of your choice or contact the repository owner for licensing details.
-
----
-Generated README scaffold by assistant. Update feature details to match the script's actual behavior.
+[AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html#license-text)
