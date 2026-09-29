@@ -1,6 +1,47 @@
 GhostDesktop — Changelog
 ========================
 
+v0.9.5 — 2026-09-29
+--------------------
+Bug fixes:
+  - Fixed "Error: Target window not found" crash in ConfigureDesktopListView.
+    Explorer can destroy and recreate the desktop list view while the script is
+    configuring it (for example when an app docks itself and reserves desktop
+    space), leaving a stale window handle. The handle is now validated with
+    IsWindow, both SendMessage calls are wrapped in try with a 1000 ms timeout,
+    and the function reports success so initialisation can simply retry on the
+    next timer tick instead of throwing.
+
+  - Fixed icons not fading back in when clicking certain areas of the desktop.
+    Click mode compared the active window against a single cached desktop
+    handle (GA_ROOT of the list view). Explorer gives focus to different desktop
+    hosts (Progman or one of several WorkerW windows) depending on monitor and
+    virtual-desktop state, so the comparison failed on some desktops. Activation
+    is now detected by window class (Progman, WorkerW, SHELLDLL_DefView,
+    SysListView32) in addition to the cached handle.
+
+  - Fixed "dead space" on the desktop where clicking never restored the icons.
+    Apps that reserve desktop space can leave a click-through overlay (observed:
+    an msedgewebview2.exe Chrome_WidgetWin_1 window) covering part of the
+    desktop. Clicking it activates nothing, so Windows ends up with no
+    foreground window at all and the icons kept fading out. No foreground
+    window is now treated as the desktop being active.
+
+  - Initialisation no longer throws if WinSetTransparent fails on a desktop
+    list view that has just been destroyed; it resets and retries instead.
+
+Tray menu:
+  - Added "Debug Info" — a live, always-on-top readout of the active window
+    (hwnd, class, title, process), the cached desktop and list-view handles,
+    the window under the mouse (hwnd, class, process, control, root), and the
+    current Desk / Tray / MousePos / Step / alpha values. Updates 10x per
+    second and only collects data while the window is open.
+
+Build:
+  - Added build.bat to compile the script with Ahk2Exe. Changes to its own
+    directory, validates that Ahk2Exe, the AutoHotkey v2 base file and the
+    script all exist, and verifies the EXE was produced.
+
 v0.9.4 — 2026-03-31
 --------------------
 Tray menu:
