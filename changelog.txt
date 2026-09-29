@@ -13,7 +13,7 @@ Tray menu:
   - "Donate!" opens PayPal link in the default browser.
 
 Tray icon:
-  - Custom tray icon (ghostdesktop.ico) set on startup with Freeze flag to
+  - Custom tray icon (ghostdesktop.ico) set on startup with Freeze flag toG
     prevent AHK from overriding it with built-in pause/suspend icons.
   - Tray icon switches to ghostdesktop-white.ico when paused and back to
     ghostdesktop.ico when unpaused.
