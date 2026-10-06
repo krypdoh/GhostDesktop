@@ -1,6 +1,42 @@
 GhostDesktop — Changelog
 ========================
 
+v0.9.6 — 2026-10-05
+--------------------
+Bug fixes:
+  - Fixed the wallpaper turning black behind the icons while they are visible
+    (and reappearing as they fade out) on some Windows 11 24H2/25H2 PCs.
+    On builds >= 26100 Explorer can run the desktop in a "raised" state (HDR,
+    wallpaper slideshow, Spotlight, Bing Wallpaper, live-wallpaper apps): the
+    wallpaper moves to a WorkerW child of Progman and SHELLDLL_DefView becomes a
+    layered child that draws only icons. Layering SysListView32 inside it made
+    the list view's background render black. GhostDesktop now detects the mode
+    and fades the window Windows itself uses:
+      - raised: alpha of SHELLDLL_DefView (Explorer's own layered window; the
+        style is never added or removed, original alpha restored on exit)
+      - classic: alpha of SysListView32, as in v0.9
+    The mode is re-checked every 500 ms and the fade target switched cleanly.
+    No colour keys or background overrides are used.
+  - Fixed "Target window not found" when the desktop list view is briefly
+    hidden (lock/unlock, appbar docking): hidden windows are now detected.
+  - Exiting while the icons are faded now restores them fully: the list view's
+    layered style is removed (classic) or DefView's original alpha is restored
+    (raised). The exit handler is registered once instead of on every re-init.
+
+Removed:
+  - ConfigureDesktopListView: the list view's background colours are no
+    longer overridden; Explorer's own CLR_NONE setting is left untouched.
+
+Debug Info:
+  - Shows the desktop mode, fade target, Progman / DefView / list view
+    extended styles and the raised-desktop WorkerW handle.
+
+Build:
+  - Compression disabled (/compress 0); packed EXEs trigger antivirus heuristics.
+  - EXE is code-signed with signtool (SHA-256, DigiCert timestamp).
+  - White tray icon embedded as a resource (ID 160) instead of being extracted
+    to %TEMP% at startup.
+
 v0.9.5 — 2026-09-29
 --------------------
 Bug fixes:

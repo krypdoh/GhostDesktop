@@ -73,10 +73,13 @@ HideMyIcon() {
     global gHover, gSpeed, gDelay, gForceReinit, gDbgOn, gDbgInfo
     local Hover := gHover, Speed := gSpeed, Delay := gDelay
 
-    static init := 0, hDesk := 0, hIcon := 0, Transparent := 255
+    static init := 0, hDesk := 0, hIcon := 0, hTarget := 0, raised := false
+    static origKey := 0, origAlpha := 255, origFlags := 2
+    static Transparent := 255, lastModeCheck := 0, exitHooked := false
 
     if gForceReinit {
         gForceReinit := false
+        ReleaseTarget()
         init := 0
     }
 
@@ -94,35 +97,51 @@ HideMyIcon() {
                 hDesk := WinExist("ahk_class WorkerW")
         }
 
-        ; Set listview background transparent so icons/labels fade cleanly.
-        ; Explorer may destroy/recreate the desktop while we work (e.g. an appbar
-        ; docking and reserving desktop space), so retry on the next tick.
-        if !ConfigureDesktopListView(hIcon) {
-            hIcon := 0
+        ClearLegacyKeyColor(hIcon)
+
+        hTarget := GetFadeTarget(hIcon, &raised)
+        if raised {
+            ; Explorer owns WS_EX_LAYERED on the raised DefView; only change its alpha and restore it later.
+            k := 0, a := 0, f := 0
+            if !DllCall("GetLayeredWindowAttributes", "ptr", hTarget, "uint*", &k, "uchar*", &a, "uint*", &f)
+                k := 0, a := 255, f := 2
+            origKey := k, origAlpha := (f & 2) ? a : 255, origFlags := f
+            ; A layered list view inside a transparent DefView renders black over the wallpaper.
+            try {
+                if WinGetExStyle("ahk_id " hIcon) & 0x80000
+                    WinSetTransparent("Off", "ahk_id " hIcon)
+            }
+        }
+
+        if !SetTargetAlpha(Transparent) {
+            hTarget := 0
             return
         }
 
-        ; Enable WS_EX_LAYERED directly on the SysListView32 (icon list-view).
-        ; Because its background is CLR_NONE, only the icons and labels are drawn,
-        ; so fading this window leaves the wallpaper fully visible at all times.
-        try WinSetTransparent(255, "ahk_id " hIcon)
-        catch {
-            hIcon := 0
-            return
+        if !exitHooked {
+            ; raising proc priority makes the fade animation smoother (could be placebo)
+            ProcessSetPriority("AboveNormal")
+            OnExit(RestoreIcons)
+            exitHooked := true
         }
-
-        ; raising proc priority makes the fade animation smoother (could be placebo)
-        ProcessSetPriority("AboveNormal")
-        ; exiting the script will restore the icons' transparency to 255
-        OnExit(RestoreIcons)
         init := 1
     }
 
-    ; Explorer can recreate the desktop list view; reacquire if needed.
-    if !hIcon || !DllCall("IsWindow", "ptr", hIcon) {
+    ; Explorer can recreate the desktop windows; reacquire if needed.
+    if !DllCall("IsWindow", "ptr", hIcon) || !DllCall("IsWindow", "ptr", hTarget) {
         init := 0
-        hIcon := 0
         return
+    }
+
+    ; Explorer switches between raised and classic rendering (HDR, slideshow, wallpaper apps).
+    if (A_TickCount - lastModeCheck > 500) {
+        lastModeCheck := A_TickCount
+        nowRaised := false
+        if (GetFadeTarget(hIcon, &nowRaised) != hTarget) {
+            ReleaseTarget()
+            init := 0
+            return
+        }
     }
 
     Step := 0, cls := "", ctrl := "", wnd := ""
@@ -158,21 +177,67 @@ HideMyIcon() {
     Transparent := Max(1, Min(255, NextStep))
 
     if gDbgOn
-        gDbgInfo := BuildDebugInfo(hDesk, hIcon, Desk, Tray, MousePos, Step, Transparent)
-    ; Apply alpha directly to the SysListView32 — its background is CLR_NONE so only
-    ; icons/labels fade; the wallpaper painted by Progman/WorkerW stays fully opaque.
+        gDbgInfo := BuildDebugInfo(hDesk, hIcon, hTarget, raised, Desk, Tray, MousePos, Step, Transparent)
     if (Transparent != before)
-        try WinSetTransparent(Transparent, "ahk_id " hIcon)
+        SetTargetAlpha(Transparent)
     ; Only sleep during active animation; skip when already at target for lower idle CPU.
     if Delay && (Transparent != before)
         Sleep(Delay)
     return
 
-    RestoreIcons(*) {
-        if hIcon
-            try WinSetTransparent(255, "ahk_id " hIcon)
+    SetTargetAlpha(alpha) {
+        if raised
+            return DllCall("SetLayeredWindowAttributes", "ptr", hTarget, "uint", origKey, "uchar", alpha, "uint", origFlags | 2) ; LWA_ALPHA
+        try WinSetTransparent(alpha, "ahk_id " hTarget)
+        catch
+            return false
+        return true
     }
 
+    ReleaseTarget() {
+        if !hTarget || !DllCall("IsWindow", "ptr", hTarget)
+            return
+        if raised
+            DllCall("SetLayeredWindowAttributes", "ptr", hTarget, "uint", origKey, "uchar", origAlpha, "uint", origFlags)
+        else
+            try WinSetTransparent("Off", "ahk_id " hTarget)
+    }
+
+    RestoreIcons(*) {
+        ReleaseTarget()
+    }
+
+}
+
+; Raised desktop (Win11 24H2+): DefView is a layered child drawing only icons over a WorkerW
+; wallpaper sibling, so fade DefView. Otherwise fade the list view (wallpaper is painted beneath it).
+GetFadeTarget(hIcon, &raised) {
+    raised := false
+    progman  := WinExist("ahk_class Progman")
+    hDefView := DllCall("GetParent", "ptr", hIcon, "ptr")
+    if !progman || !hDefView || DllCall("GetParent", "ptr", hDefView, "ptr") != progman
+        return hIcon
+    try {
+        if !(WinGetExStyle("ahk_id " hDefView) & 0x80000) ; WS_EX_LAYERED
+            return hIcon
+    } catch
+        return hIcon
+    worker := DllCall("FindWindowEx", "ptr", progman, "ptr", 0, "str", "WorkerW", "ptr", 0, "ptr")
+    if !worker || !DllCall("IsWindowVisible", "ptr", worker)
+        return hIcon
+    raised := true
+    return hDefView
+}
+
+; Undo the key-color background left on the list view by v0.9.6 test builds.
+ClearLegacyKeyColor(hIcon) {
+    try {
+        if (SendMessage(0x1000, 0, 0, , "ahk_id " hIcon, , , , 1000) & 0xFFFFFFFF) != 0x010001 ; LVM_GETBKCOLOR
+            return
+        SendMessage(0x1001, 0, 0xFFFFFFFF, , "ahk_id " hIcon, , , , 1000) ; LVM_SETBKCOLOR, CLR_NONE
+        SendMessage(0x1026, 0, 0xFFFFFFFF, , "ahk_id " hIcon, , , , 1000) ; LVM_SETTEXTBKCOLOR, CLR_NONE
+        DllCall("InvalidateRect", "ptr", hIcon, "ptr", 0, "int", true)
+    }
 }
 
 IsDesktopActive(hDesk) {
@@ -193,7 +258,7 @@ IsDesktopActive(hDesk) {
          || cls = "SHELLDLL_DefView" || cls = "SysListView32")
 }
 
-BuildDebugInfo(hDesk, hIcon, Desk, Tray, MousePos, Step, Transparent) {
+BuildDebugInfo(hDesk, hIcon, hTarget, raised, Desk, Tray, MousePos, Step, Transparent) {
     act := WinExist("A"), aCls := "", aTtl := "", aProc := ""
     try {
         aCls  := WinGetClass("ahk_id " act)
@@ -217,6 +282,9 @@ BuildDebugInfo(hDesk, hIcon, Desk, Tray, MousePos, Step, Transparent) {
          . "`n"
          . "hDesk (cached):`t" hDesk "`n"
          . "hIcon (listview):`t" hIcon "`n"
+         . "Mode:`t`t" (raised ? "raised (fade DefView)" : "classic (fade listview)") "`n"
+         . "Fade target:`t" hTarget "`n"
+         . DesktopTreeInfo(hIcon)
          . "`n"
          . "Mouse hwnd:`t" mId "`n"
          . "Mouse class:`t" mCls "`n"
@@ -227,6 +295,20 @@ BuildDebugInfo(hDesk, hIcon, Desk, Tray, MousePos, Step, Transparent) {
          . "Desk:`t" (Desk ? "1" : "0") "   Tray:`t" (Tray ? "1" : "0") "`n"
          . "MousePos:`t" MousePos "`n"
          . "Step:`t" Step "   Alpha:`t" Transparent
+}
+
+DesktopTreeInfo(hIcon) {
+    progman := WinExist("ahk_class Progman")
+    hDefView := DllCall("GetParent", "ptr", hIcon, "ptr")
+    worker := progman ? DllCall("FindWindowEx", "ptr", progman, "ptr", 0, "str", "WorkerW", "ptr", 0, "ptr") : 0
+    pEx := "", dEx := "", lEx := ""
+    try pEx := Format("0x{:08X}", WinGetExStyle("ahk_id " progman))
+    try dEx := Format("0x{:08X}", WinGetExStyle("ahk_id " hDefView))
+    try lEx := Format("0x{:08X}", WinGetExStyle("ahk_id " hIcon))
+    return "Progman:`t" progman "  ex " pEx "`n"
+         . "DefView:`t" hDefView "  ex " dEx "`n"
+         . "ListView ex:`t" lEx "`n"
+         . "WorkerW (Progman child):`t" worker (worker ? (DllCall("IsWindowVisible", "ptr", worker) ? " visible" : " hidden") : "") "`n"
 }
 
 ShowDebugGui(*) {
@@ -240,7 +322,7 @@ ShowDebugGui(*) {
 
     dg := Gui("+AlwaysOnTop +Resize", "GhostDesktop — Debug")
     dg.SetFont("s9", "Consolas")
-    txt := dg.Add("Text", "w460 r22", "collecting…")
+    txt := dg.Add("Text", "w460 r28", "collecting…")
     dg.OnEvent("Close", Close)
     dg.Show("AutoSize")
 
@@ -281,26 +363,6 @@ GetDesktopIconListViewHwnd() {
         return 0
 
     return DllCall("FindWindowEx", "ptr", hDefView, "ptr", 0, "str", "SysListView32", "ptr", 0, "ptr")
-}
-
-ConfigureDesktopListView(hIcon) {
-    static LVM_FIRST := 0x1000
-    static LVM_SETBKCOLOR := LVM_FIRST + 1
-    static LVM_SETTEXTBKCOLOR := LVM_FIRST + 38
-    static CLR_NONE := 0xFFFFFFFF
-
-    if !hIcon || !DllCall("IsWindow", "ptr", hIcon)
-        return false
-
-    ; Keep list-view background transparent so only icons/labels fade, not wallpaper.
-    ; Timeout guards against explorer being busy while another app docks/reserves space.
-    try {
-        SendMessage(LVM_SETBKCOLOR, 0, CLR_NONE, , "ahk_id " hIcon, , , , 1000)
-        SendMessage(LVM_SETTEXTBKCOLOR, 0, CLR_NONE, , "ahk_id " hIcon, , , , 1000)
-    } catch
-        return false
-
-    return true
 }
 
 ; ── Settings GUI ──────────────────────────────────────────────────────────────
