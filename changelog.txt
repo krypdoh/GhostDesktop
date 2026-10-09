@@ -1,6 +1,33 @@
 GhostDesktop — Changelog
 ========================
 
+v0.9.7 — 2026-10-09
+--------------------
+Bug fixes:
+  - Fixed the wallpaper turning black while the icons are visible (and
+    reappearing as they fade out) on PCs where Explorer runs a "split"
+    desktop. This is common on Windows 10 / 11 23H2 after a wallpaper
+    slideshow, a wallpaper change with animation, or a live-wallpaper app:
+    SHELLDLL_DefView lives in its own top-level WorkerW with a transparent
+    background and the wallpaper is drawn by a separate WorkerW behind it.
+    Layering the list view (or DefView) there makes its empty background
+    render as solid black. GhostDesktop now detects this layout and fades the
+    icon host WorkerW instead. The wallpaper window is never touched, the
+    icons are drawn unchanged, and no colour keys or background overrides
+    are used. The host's original style is restored on exit.
+  - The list view's layered style is cleared whenever the fade target is not
+    the list view, so a previous instance that was killed while faded no
+    longer leaves the wallpaper black.
+  - If Explorer drops the layered style from the fade target while rebuilding
+    the desktop, the current alpha is re-applied.
+  - Fixed Click mode behaving like Hover mode on split desktops. The icon host
+    there is an untitled WorkerW, which the "show desktop" check (untitled
+    Progman / WorkerW under the mouse) mistook for the show-desktop state and
+    forced a fade-in whenever the mouse was over the desktop.
+
+Debug Info:
+  - Shows the split mode, the DefView host window and the wallpaper WorkerW.
+
 v0.9.6 — 2026-10-05
 --------------------
 Bug fixes:
